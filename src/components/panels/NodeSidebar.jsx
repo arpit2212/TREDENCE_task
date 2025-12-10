@@ -59,7 +59,7 @@ const NodeSidebar = ({ nodes, setNodes, onAIAssistClick }) => {
   return (
     <div className="w-64 bg-gray-900 border-r border-gray-800 p-4 overflow-y-auto">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white mb-1">Workflow Designer</h2>
+        <h2 className="text-xl font-bold text-white mb-1"> HR Workflow Designer</h2>
         <p className="text-sm text-gray-400">Drag nodes to canvas</p>
       </div>
 
