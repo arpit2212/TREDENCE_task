@@ -7,7 +7,19 @@ A sophisticated, AI-powered workflow designer built with React and React Flow fo
 This is a production-ready, enterprise-grade HR Workflow Designer that demonstrates deep knowledge of React architecture, React Flow integration, complex form handling, and modern web development practices. The application goes beyond the basic requirements by incorporating AI-powered workflow generation using Google Gemini.
 
 ### Live Demo
-🔗 [View Demo](#) (Add your deployment URL)
+🔗 [View Demo](https://tredence-task-pied.vercel.app/) (Add your deployment URL)
+
+### Screenshots
+
+![Screenshot 1](public/Screenshot%202025-12-11%20040721.png)
+![Screenshot 2](public/Screenshot%202025-12-11%20040744.png)
+![Screenshot 3](public/Screenshot%202025-12-11%20040831.png)
+![Screenshot 4](public/Screenshot%202025-12-11%20040842.png)
+![Screenshot 5](public/Screenshot%202025-12-11%20040932.png)
+
+
+
+
 
 ### Key Highlights
 - ✅ **100% Functional**: All core and bonus requirements implemented
@@ -874,5 +886,6 @@ For questions about implementation details:
 ---
 
 **Built with ❤️ using React, React Flow, Tailwind CSS, and Google Gemini AI**
+
 
 *This project demonstrates enterprise-level thinking, clean code practices, and the ability to deliver production-quality software rapidly.*
