@@ -1,21 +1,23 @@
 // Gemini AI API Integration for Workflow Generation
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/models/gemini-1.5-flash';
+// Use v1beta API with gemini-2.5-flash model
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-// Helper to get API key from environment or parameter
-const getApiKey = (providedKey) => {
-  return providedKey || import.meta.env.VITE_GEMINI_API_KEY;
+// Get API key from environment variable
+const getApiKey = () => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('VITE_GEMINI_API_KEY is not configured in environment variables');
+  }
+  return apiKey;
 };
 
 /**
  * Generate a complete workflow from a text description
  */
-export const generateWorkflowWithAI = async (prompt, apiKey) => {
-  const finalApiKey = getApiKey(apiKey);
-  
-  if (!finalApiKey) {
-    throw new Error('Gemini API key is required. Please configure it in the AI Assistant panel or in your .env file.');
-  }
+export const generateWorkflowWithAI = async (prompt) => {
+  const apiKey = getApiKey();
 
   const systemPrompt = `You are an expert HR workflow designer. Generate a workflow based on the user's description.
   
@@ -56,37 +58,39 @@ Rules:
 7. Return ONLY the JSON, no explanations or markdown`;
 
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${finalApiKey}`, {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
         contents: [
           {
+            // (role is optional but fine to omit)
             parts: [
               {
-                text: `${systemPrompt}\n\nUser Request: ${prompt}`
-              }
-            ]
-          }
+                text: `${systemPrompt}\n\nUser Request: ${prompt}`,
+              },
+            ],
+          },
         ],
         generationConfig: {
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 2048,
-        }
-      })
+          maxOutputTokens: 8192,
+        },
+      }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.error?.message || 'Failed to generate workflow');
     }
 
     const data = await response.json();
-    const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!generatedText) {
       throw new Error('No response from AI');
@@ -95,9 +99,9 @@ Rules:
     // Extract JSON from response (handle markdown code blocks)
     let jsonText = generatedText.trim();
     if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
     } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/```\n?/g, '');
+      jsonText = jsonText.replace(/```\s*/g, '');
     }
 
     const workflow = JSON.parse(jsonText);
@@ -122,12 +126,8 @@ Rules:
 /**
  * Improve an existing workflow
  */
-export const improveWorkflowWithAI = async (currentWorkflow, apiKey) => {
-  const finalApiKey = getApiKey(apiKey);
-  
-  if (!finalApiKey) {
-    throw new Error('Gemini API key is required.');
-  }
+export const improveWorkflowWithAI = async (currentWorkflow) => {
+  const apiKey = getApiKey();
 
   const systemPrompt = `You are an expert HR workflow optimizer. Analyze the current workflow and improve it.
 
@@ -144,56 +144,58 @@ Provide an improved version with:
 Return ONLY a valid JSON object with the same structure as the input (nodes and edges arrays).`;
 
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${finalApiKey}`, {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
         contents: [
           {
-            parts: [{ text: systemPrompt }]
-          }
+            parts: [{ text: systemPrompt }],
+          },
         ],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 2048,
-        }
-      })
+          maxOutputTokens: 8192,
+        },
+      }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to improve workflow');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || 'Failed to improve workflow');
     }
 
     const data = await response.json();
-    const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedText) {
+      throw new Error('No response from AI');
+    }
 
     // Extract JSON
     let jsonText = generatedText.trim();
     if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
     } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/```\n?/g, '');
+      jsonText = jsonText.replace(/```\s*/g, '');
     }
 
     const improvedWorkflow = JSON.parse(jsonText);
     return improvedWorkflow;
   } catch (error) {
     console.error('Gemini API Error:', error);
-    throw new Error('Failed to improve workflow with AI');
+    throw new Error(error.message || 'Failed to improve workflow with AI');
   }
 };
 
 /**
  * Get suggestions for next steps in the workflow
  */
-export const suggestNextSteps = async (currentWorkflow, apiKey) => {
-  const finalApiKey = getApiKey(apiKey);
-  
-  if (!finalApiKey) {
-    throw new Error('Gemini API key is required.');
-  }
+export const suggestNextSteps = async (currentWorkflow) => {
+  const apiKey = getApiKey();
 
   const systemPrompt = `You are an expert HR workflow consultant. Analyze this workflow and provide 3-5 specific suggestions for improvement or next steps.
 
@@ -204,43 +206,49 @@ Provide suggestions as a JSON array of strings. Each suggestion should be specif
 Return ONLY a JSON array like: ["suggestion 1", "suggestion 2", "suggestion 3"]`;
 
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${finalApiKey}`, {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
         contents: [
           {
-            parts: [{ text: systemPrompt }]
-          }
+            parts: [{ text: systemPrompt }],
+          },
         ],
         generationConfig: {
           temperature: 0.8,
-          maxOutputTokens: 1024,
-        }
-      })
+          maxOutputTokens: 4096,
+        },
+      }),
     });
 
     if (!response.ok) {
-      throw new Error('Failed to get suggestions');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || 'Failed to get suggestions');
     }
 
     const data = await response.json();
-    const generatedText = data.candidates[0]?.content?.parts[0]?.text;
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedText) {
+      throw new Error('No response from AI');
+    }
 
     // Extract JSON
     let jsonText = generatedText.trim();
     if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
     } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/```\n?/g, '');
+      jsonText = jsonText.replace(/```\s*/g, '');
     }
 
     const suggestions = JSON.parse(jsonText);
     return Array.isArray(suggestions) ? suggestions : [suggestions];
   } catch (error) {
     console.error('Gemini API Error:', error);
-    throw new Error('Failed to get AI suggestions');
+    throw new Error(error.message || 'Failed to get AI suggestions');
   }
 };

@@ -7,26 +7,8 @@ const AIAssistantPanel = ({ onClose, onGenerate, currentNodes, currentEdges }) =
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState(null);
   const [error, setError] = useState(null);
-  const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
-  const [showApiKeyInput, setShowApiKeyInput] = useState(!apiKey);
-
-  const handleSaveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('gemini_api_key', apiKey.trim());
-      setShowApiKeyInput(false);
-      setError(null);
-    } else {
-      setError('Please enter a valid API key');
-    }
-  };
 
   const handleGenerate = async () => {
-    if (!apiKey) {
-      setError('Please configure your Gemini API key first');
-      setShowApiKeyInput(true);
-      return;
-    }
-
     if (!prompt.trim()) {
       setError('Please enter a workflow description');
       return;
@@ -36,23 +18,17 @@ const AIAssistantPanel = ({ onClose, onGenerate, currentNodes, currentEdges }) =
     setError(null);
 
     try {
-      const workflow = await generateWorkflowWithAI(prompt, apiKey);
+      const workflow = await generateWorkflowWithAI(prompt);
       onGenerate(workflow);
       setPrompt('');
     } catch (err) {
-      setError(err.message || 'Failed to generate workflow. Please check your API key and try again.');
+      setError(err.message || 'Failed to generate workflow. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleImprove = async () => {
-    if (!apiKey) {
-      setError('Please configure your Gemini API key first');
-      setShowApiKeyInput(true);
-      return;
-    }
-
     if (currentNodes.length === 0) {
       setError('Please create a workflow first before asking for improvements');
       return;
@@ -62,7 +38,7 @@ const AIAssistantPanel = ({ onClose, onGenerate, currentNodes, currentEdges }) =
     setError(null);
 
     try {
-      const improved = await improveWorkflowWithAI({ nodes: currentNodes, edges: currentEdges }, apiKey);
+      const improved = await improveWorkflowWithAI({ nodes: currentNodes, edges: currentEdges });
       onGenerate(improved);
     } catch (err) {
       setError(err.message || 'Failed to improve workflow');
@@ -72,12 +48,6 @@ const AIAssistantPanel = ({ onClose, onGenerate, currentNodes, currentEdges }) =
   };
 
   const handleSuggest = async () => {
-    if (!apiKey) {
-      setError('Please configure your Gemini API key first');
-      setShowApiKeyInput(true);
-      return;
-    }
-
     if (currentNodes.length === 0) {
       setError('Please create a workflow first before asking for suggestions');
       return;
@@ -87,7 +57,7 @@ const AIAssistantPanel = ({ onClose, onGenerate, currentNodes, currentEdges }) =
     setError(null);
 
     try {
-      const suggestions = await suggestNextSteps({ nodes: currentNodes, edges: currentEdges }, apiKey);
+      const suggestions = await suggestNextSteps({ nodes: currentNodes, edges: currentEdges });
       setSuggestions(suggestions);
     } catch (err) {
       setError(err.message || 'Failed to get suggestions');
@@ -131,52 +101,6 @@ const AIAssistantPanel = ({ onClose, onGenerate, currentNodes, currentEdges }) =
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* API Key Configuration */}
-          {showApiKeyInput ? (
-            <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4">
-              <h3 className="text-yellow-400 font-semibold text-sm mb-3 flex items-center gap-2">
-                <Lightbulb size={16} />
-                Configure Gemini API Key
-              </h3>
-              <p className="text-xs text-gray-400 mb-3">
-                Get your free API key from{' '}
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline"
-                >
-                  Google AI Studio
-                </a>
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter your Gemini API key"
-                  className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                />
-                <button
-                  onClick={handleSaveApiKey}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between bg-green-900/20 border border-green-700 rounded-lg p-3">
-              <span className="text-green-400 text-sm">✓ API Key Configured</span>
-              <button
-                onClick={() => setShowApiKeyInput(true)}
-                className="text-xs text-gray-400 hover:text-white"
-              >
-                Change
-              </button>
-            </div>
-          )}
-
           {/* Error Display */}
           {error && (
             <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
@@ -201,7 +125,7 @@ Example: 'Create an employee onboarding workflow that includes document collecti
             />
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || !apiKey}
+              disabled={isGenerating}
               className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-all font-medium"
             >
               {isGenerating ? (
@@ -243,7 +167,7 @@ Example: 'Create an employee onboarding workflow that includes document collecti
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={handleImprove}
-                  disabled={isGenerating || !apiKey}
+                  disabled={isGenerating}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
                 >
                   <RefreshCw size={16} />
@@ -251,7 +175,7 @@ Example: 'Create an employee onboarding workflow that includes document collecti
                 </button>
                 <button
                   onClick={handleSuggest}
-                  disabled={isGenerating || !apiKey}
+                  disabled={isGenerating}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
                 >
                   <Lightbulb size={16} />
