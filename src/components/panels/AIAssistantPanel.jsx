@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Wand2, Lightbulb, RefreshCw } from 'lucide-react';
-import { generateWorkflowWithAI, improveWorkflowWithAI, suggestNextSteps } from '../../services/geminiApi';
+import { generateWorkflowWithAI, improveWorkflowWithAI, suggestNextSteps } from '../../services/geminiapi';
 
 const AIAssistantPanel = ({ onClose, onGenerate, currentNodes, currentEdges }) => {
   const [prompt, setPrompt] = useState('');
